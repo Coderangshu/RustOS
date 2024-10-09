@@ -145,7 +145,7 @@ impl Writer {
     }
 }
 
-// a wrapper fucntion for write_string so that we can use the Rust's built in write! / writeln! formatting macros
+// a wrapper function for write_string so that we can use the Rust's built in write! / writeln! formatting macros
 // this is similar to write_string only it has a return type fmt:Result, which can be achieved by implementing the
 // core::fmt::Write trait
 use core::fmt;
@@ -157,23 +157,46 @@ impl fmt::Write for Writer {
 }
 
 // trying to create a global WRITER without carrying the Writer in every module
-pub static WRITER: Writer = Writer {
-    column_position: 0,
-    color_code: ColorCode::new(Color::Yellow, Color::Black),
-    buffer: unsafe {&mut *(0xb8000 as *mut Buffer)},
-};
+// we need ColorCode's new func to be compiled during compile time, so that it can be used
+// anywhere in the code in runtime, this is achievable by declaring a function as const,
+// but in this case there are arguments that need to be part of the func to run, thus we use
+// lazy static crate of rust, this helps in loading the function during runtime when it is first
+// called during the runtime
+use lazy_static::lazy_static;
+
+// this WRITER is immutable by default to make it mutable we can declare mut static, but that
+// would be unsafe, we can use interior mutability, to achieve it we use spinlocks as these
+// are the most basic kind of mutex that do not require any OS or hardware support
+use spin::Mutex;
+
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new (Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buffer: unsafe {&mut *(0xb8000 as *mut Buffer)},
+    });
+}
+
+
+
+
+
+
+
+// TEST FUNCTION
+
 
 // a test function to check the capabilities of the Writer we wrote
-pub fn print_something() {
-    use core::fmt::Write;
-    let mut writer = Writer {
-        column_position: 0,
-        color_code: ColorCode::new(Color::LightRed, Color::White),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    };
+// pub fn print_something() {
+//     use core::fmt::Write;
+//     let mut writer = Writer {
+//         column_position: 0,
+//         color_code: ColorCode::new(Color::LightRed, Color::White),
+//         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+//     };
 
-    writer.write_byte(b'H');
-    writer.write_string("ello ");
-    writer.write_string("Wörld!");
-    write!(writer, "The numbers are {} and {},\nthis is new line", 42, 1.0/3.0).unwrap();
-}
+//     writer.write_byte(b'H');
+//     writer.write_string("ello ");
+//     writer.write_string("Wörld!");
+//     write!(writer, "The numbers are {} and {},\nthis is new line", 42, 1.0/3.0).unwrap();
+// }
