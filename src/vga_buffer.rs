@@ -74,6 +74,32 @@ pub struct Writer {
 // Now we will use the Writer to modify the buffer's characters
 // this method is to write as single ASCII byte
 impl Writer {
+    // to print new line
+    fn new_line(&mut self) {
+        // for row we start from row 1 as row 0 is moved out of view when moved up
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let character = self.buffer.chars[row][col].read();
+                self.buffer.chars[row-1][col].write(character);
+            }
+        }
+        // clear the last row
+        self.clear_row(BUFFER_HEIGHT-1);
+        // set the position of cursor in the row at beginning
+        self.column_position = 0;
+    }
+
+    // to clear the last row after moving all the above lines up
+    fn clear_row(&mut self, row: usize) {
+        let blank = ScreenChar {
+            ascii_character: b' ',
+            color_code: self.color_code,
+        };
+        for col in 0..BUFFER_WIDTH {
+            self.buffer.chars[row][col].write(blank);
+        }
+    }
+
     pub fn write_byte(&mut self, byte: u8) {
         // switch on byte
         match byte {
@@ -100,38 +126,8 @@ impl Writer {
             }
         }
     }
-}
 
-impl Writer {
-    fn new_line(&mut self) {
-        // for row we start from row 1 as row 0 is moved out of view when moved up
-        for row in 1..BUFFER_HEIGHT {
-            for col in 0..BUFFER_WIDTH {
-                let character = self.buffer.chars[row][col].read();
-                self.buffer.chars[row-1][col].write(character);
-            }
-        }
-        // clear the last row
-        self.clear_row(BUFFER_HEIGHT-1);
-        // set the position of cursor in the row at beginning
-        self.column_position = 0;
-    }
-}
-
-impl Writer {
-    fn clear_row(&mut self, row: usize) {
-        let blank = ScreenChar {
-            ascii_character: b' ',
-            color_code: self.color_code,
-        };
-        for col in 0..BUFFER_WIDTH {
-            self.buffer.chars[row][col].write(blank);
-        }
-    }
-}
-
-// to print strings, we can convert string to individual bytes and print one by one
-impl Writer {
+    // to print strings, we can convert string to individual bytes and print one by one
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
@@ -177,8 +173,33 @@ lazy_static! {
     });
 }
 
+// Now we try adding a println macro using the WRITER so that println can be used
+// from anywhere in the whole crate
+// doc(hidden) attr to hide this func from the auto generated documentation of rust
+#[doc(hidden)]
+// this func is a wrapper func which locks the WRITER and calls write_fmt method, which is imported
+// from the Write trait, the additional unwrap() at end panics if no printing occurs
+// but as we return Ok() at the end of the write_str panic doesn't happen
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
+    WRITER.lock().write_fmt(args).unwrap();
+}
 
+// we add the #[macro_export] attribute to both macros to make them available everywhere in our crate
+// this places the macros in the root namespace of the crate,
+// so importing them via use crate::vga_buffer::println won't work
+// Instead, we have to do use crate::println
+// we are wrapping the _print func written above inside a macro to get the above state behaviour
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
+}
 
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
 
 
 

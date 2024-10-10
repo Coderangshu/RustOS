@@ -5,7 +5,10 @@ use core::panic::PanicInfo;
 
 /// This function is called on panic.
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    // after implementing the println func in vga_buffer now we
+    // can complete this panic function
+    println!("{}", info);
     loop {}
 }
 
@@ -39,9 +42,15 @@ pub extern "C" fn _start() -> ! {
     // vga_buffer::print_something();
 
     // after creating the WRITER we can directly print to screen from anywhere in the code base
-    use core::fmt::Write;
-    vga_buffer::WRITER.lock().write_str("Hello again,\n").unwrap();
-    write!(vga_buffer::WRITER.lock(), "some numbers: {} {}", 43, 1.34343).unwrap();
+    // use core::fmt::Write;
+    // vga_buffer::WRITER.lock().write_str("Hello again,\n").unwrap();
+    // write!(vga_buffer::WRITER.lock(), "some numbers: {} {}", 43, 1.34343).unwrap();
+
+    // after creating the prinln macro we can simply use it to print to screen
+    // as the macro is already part of cargo thus it is globally available no need to import
+    println!("Hello World{}", " from Angshuman!!");
+
+    panic!("sjfdlkfjs");
 
     loop {}
 }
