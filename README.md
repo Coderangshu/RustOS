@@ -9,3 +9,6 @@ To setup machine:
 5. run `cargo install bootimage`
 6. run `rustup component add llvm-tools-preview`
 7. run `cargo bootimage`
+
+To run the OS image using qemu:
+`qemu-system-x86_64 -drive format=raw,file=target/x86_64-rustos/debug/bootimage-rustos.bin`
