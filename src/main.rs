@@ -1,6 +1,37 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
 
+// --------------------------------------- Testing Part ------------------------------------------------------------
+
+#![feature(custom_test_frameworks)] // Custom test framework provided by Rust
+#![test_runner(crate::test_runner)]
+// The custom test frameworks feature generates a main function that calls test_runner,
+// but this function is ignored because we use the #[no_main] attribute and provide our own entry point _start
+// To fix this, we first need to change the name of the generated function to something different than main through
+// the reexport_test_harness_main attribute. Then we can call the renamed function from our _start function
+#![reexport_test_harness_main = "test_main"]
+
+// Test framework code
+// tests is passed as argument to the test_runner, it contains all the test cases
+// which are the reference of trivial_assertion (test cases), these are then executed
+// by the test_runner
+#[cfg(test)]
+pub fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests", tests.len());
+    for test in tests {
+        test();
+    }
+}
+
+#[test_case]
+fn trivial_assertion() {
+    print!("trivial assertion... ");
+    assert_eq!(1, 1);
+    println!("[ok]");
+}
+
+// --------------------------------------- Testing Part ------------------------------------------------------------
+
 use core::panic::PanicInfo;
 
 /// This function is called on panic.
@@ -16,6 +47,7 @@ fn panic(info: &PanicInfo) -> ! {
 mod vga_buffer;
 
 // static HELLO: &[u8] = b"Hello World!";
+
 
 #[no_mangle] // don't mangle the name of this function
 // this function is the entry point, since the linker looks for a function
@@ -48,9 +80,14 @@ pub extern "C" fn _start() -> ! {
 
     // after creating the prinln macro we can simply use it to print to screen
     // as the macro is already part of cargo thus it is globally available no need to import
-    println!("Hello World{}", " from Angshuman!!");
+    println!("Hello World, {}!!", "from Angshuman");
 
-    panic!("sjfdlkfjs");
+    // panic!("sjfdlkfjs"); // code to check if panic! function is working
+
+    // below line defines a conditional compile command
+    // whenever test is true the below lines will be compiled and executed
+    #[cfg(test)]
+    test_main();
 
     loop {}
 }
