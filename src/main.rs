@@ -1,50 +1,11 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
-
-// --------------------------------------- Testing Part ------------------------------------------------------------
-
-#![feature(custom_test_frameworks)] // Custom test framework provided by Rust
-#![test_runner(crate::test_runner)]
-// The custom test frameworks feature generates a main function that calls test_runner,
-// but this function is ignored because we use the #[no_main] attribute and provide our own entry point _start
-// To fix this, we first need to change the name of the generated function to something different than main through
-// the reexport_test_harness_main attribute. Then we can call the renamed function from our _start function
+#![feature(custom_test_frameworks)]
+#![test_runner(rustos::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-// Test framework code
-// tests is passed as argument to the test_runner, it contains all the test cases
-// which are the reference of trivial_assertion (test cases), these are then executed
-// by the test_runner
-#[cfg(test)]
-pub fn test_runner(tests: &[&dyn Fn()]) {
-    println!("Running {} tests", tests.len());
-    for test in tests {
-        test();
-    }
-}
-
-#[test_case]
-fn trivial_assertion() {
-    print!("trivial assertion... ");
-    assert_eq!(1, 1);
-    println!("[ok]");
-}
-
-// --------------------------------------- Testing Part ------------------------------------------------------------
-
+use rustos::println;
 use core::panic::PanicInfo;
-
-/// This function is called on panic.
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    // after implementing the println func in vga_buffer now we
-    // can complete this panic function
-    println!("{}", info);
-    loop {}
-}
-
-// a module to handle VGA hardware supported printing
-mod vga_buffer;
 
 // static HELLO: &[u8] = b"Hello World!";
 
@@ -90,4 +51,20 @@ pub extern "C" fn _start() -> ! {
     test_main();
 
     loop {}
+}
+
+// This function is called on panic.
+#[cfg(not(test))]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    // after implementing the println func in vga_buffer now we
+    // can complete this panic function
+    println!("{}", info);
+    loop {}
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    rustos::test_panic_handler(info)
 }

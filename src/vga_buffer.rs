@@ -1,3 +1,30 @@
+use core::fmt;
+// trying to create a global WRITER without carrying the Writer in every module
+// we need ColorCode's new func to be compiled during compile time, so that it can be used
+// anywhere in the code in runtime, this is achievable by declaring a function as const,
+// but in this case there are arguments that need to be part of the func to run, thus we use
+// lazy static crate of rust, this helps in loading the function during runtime when it is first
+// called during the runtime
+use lazy_static::lazy_static;
+// this WRITER is immutable by default to make it mutable we can declare mut static, but that
+// would be unsafe, we can use interior mutability, to achieve it we use spinlocks as these
+// are the most basic kind of mutex that do not require any OS or hardware support
+use spin::Mutex;
+// we use volatile to tell the rust compiler not to optimize these
+// buffer writes as this are important and cannot be skipped which
+// it would have done by default as we are always writing ot the buffer
+// and not reading from even once in our whole code, thus making the
+// compiler think these writes as unimportant
+use volatile::Volatile;
+
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new (Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buffer: unsafe {&mut *(0xb8000 as *mut Buffer)},
+    });
+}
+
 // as u4 doesn't exist we have to use u8 representation
 // but there are only 16 colors and thus only 4 bits are sufficient
 // so 4 more bits will stay empty and rust doesn't allow that
@@ -51,12 +78,6 @@ struct ScreenChar {
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
 
-// we use volatile to tell the rust compiler not to optimize these
-// buffer writes as this are important and cannot be skipped which
-// it would have done by default as we are always writing ot the buffer
-// and not reading from even once in our whole code, thus making the
-// compiler think these writes as unimportant
-use volatile::Volatile;
 #[repr(transparent)]
 struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
@@ -144,7 +165,6 @@ impl Writer {
 // a wrapper function for write_string so that we can use the Rust's built in write! / writeln! formatting macros
 // this is similar to write_string only it has a return type fmt:Result, which can be achieved by implementing the
 // core::fmt::Write trait
-use core::fmt;
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
@@ -152,26 +172,9 @@ impl fmt::Write for Writer {
     }
 }
 
-// trying to create a global WRITER without carrying the Writer in every module
-// we need ColorCode's new func to be compiled during compile time, so that it can be used
-// anywhere in the code in runtime, this is achievable by declaring a function as const,
-// but in this case there are arguments that need to be part of the func to run, thus we use
-// lazy static crate of rust, this helps in loading the function during runtime when it is first
-// called during the runtime
-use lazy_static::lazy_static;
 
-// this WRITER is immutable by default to make it mutable we can declare mut static, but that
-// would be unsafe, we can use interior mutability, to achieve it we use spinlocks as these
-// are the most basic kind of mutex that do not require any OS or hardware support
-use spin::Mutex;
 
-lazy_static! {
-    pub static ref WRITER: Mutex<Writer> = Mutex::new (Writer {
-        column_position: 0,
-        color_code: ColorCode::new(Color::Yellow, Color::Black),
-        buffer: unsafe {&mut *(0xb8000 as *mut Buffer)},
-    });
-}
+
 
 // Now we try adding a println macro using the WRITER so that println can be used
 // from anywhere in the whole crate
@@ -221,3 +224,27 @@ macro_rules! println {
 //     writer.write_string("Wörld!");
 //     write!(writer, "The numbers are {} and {},\nthis is new line", 42, 1.0/3.0).unwrap();
 // }
+
+
+// A test function to check println works without panicking
+#[test_case]
+fn test_println_simple() {
+    println!("test_println_simple output");
+}
+// A test to check if no panic occurs when many lines are printed nad also shifted off the screen
+#[test_case]
+fn test_println_many() {
+    for _ in 0..200 {
+        println!("test_println_many output");
+    }
+}
+// We can also create a test function to verify that the printed lines really appear on the screen
+#[test_case]
+fn test_println_output() {
+    let s = "Some test string that fits on a single line";
+    println!("{}", s);
+    for (i, c) in s.chars().enumerate() {
+        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read();
+        assert_eq!(char::from(screen_char.ascii_character), c);
+    }
+}
