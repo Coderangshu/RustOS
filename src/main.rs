@@ -43,6 +43,22 @@ pub extern "C" fn _start() -> ! {
     // as the macro is already part of cargo thus it is globally available no need to import
     println!("Hello World, {}!!", "from Angshuman");
 
+    // Initiations done before the OS bootup
+    rustos::init();
+    // invoke a breakpoint exception
+    // x86_64::instructions::interrupts::int3();
+
+    // trigger a page fault without registering a page fault (this will cause a double fault)
+    // unsafe {
+    //     *(0xdeadbeef as *mut u8) = 42;
+    // };
+
+    // causing stack overflow so that a triple page fault occurs
+    // fn stack_overflow() {
+    //     stack_overflow();
+    // }
+    // stack_overflow(); // trigger a stack overflow
+
     // panic!("sjfdlkfjs"); // code to check if panic! function is working
 
     // below line defines a conditional compile command
@@ -50,7 +66,16 @@ pub extern "C" fn _start() -> ! {
     #[cfg(test)]
     test_main();
 
-    loop {}
+    // print statement to check if printing occurse after breakpoint exception instead of crashing
+    println!("It did not crash!!");
+    rustos::hlt_loop();
+    // using print in the loop go into deadlock
+    // {
+    //     for _ in 0..1000000{
+    //         use rustos::print;
+    //         print!("-");
+    //     }
+    // }
 }
 
 // This function is called on panic.
@@ -60,7 +85,7 @@ fn panic(info: &PanicInfo) -> ! {
     // after implementing the println func in vga_buffer now we
     // can complete this panic function
     println!("{}", info);
-    loop {}
+    rustos::hlt_loop();
 }
 
 #[cfg(test)]
