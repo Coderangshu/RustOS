@@ -2,7 +2,7 @@
 name = "rustos"
 version = "0.1.0"
 edition = "2021"
-authors = ["Angshuman Sengupta <angshuman@cse.iitb.ac.in>"]
+authors = ["Angshuman Sengupta <angshuman@cse.iitb.ac.in>", "Pratik Wadekar <pratikwadekar@cse.iitb.ac.in>"]
 
 # the profile used for `cargo build`
 # [profile.dev]
@@ -13,13 +13,14 @@ authors = ["Angshuman Sengupta <angshuman@cse.iitb.ac.in>"]
 panic = "abort" # disable stack unwinding on panic
 
 [dependencies]
-bootloader = "0.9"
+bootloader = {version = "0.9", features = ["map_physical_memory"]}
 volatile = "0.2.6"
 spin = "0.5.2"
 x86_64 = "0.14.2"
 uart_16550 = "0.2.0"
 pic8259 = "0.10.1"
 pc-keyboard = "0.7.0"
+linked_list_allocator = "0.9.0"
 
 [dependencies.lazy_static]
 version = "1.0"

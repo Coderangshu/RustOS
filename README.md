@@ -12,3 +12,6 @@ To setup machine:
 
 To run the OS image using qemu:
 `qemu-system-x86_64 -drive format=raw,file=target/x86_64-rustos/debug/bootimage-rustos.bin`
+
+cargo update -p uart_16550 --precise 0.2.14
+cargo update -p x86_64 --precise 0.14.7

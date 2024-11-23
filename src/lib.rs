@@ -9,12 +9,15 @@
 // the reexport_test_harness_main attribute. Then we can call the renamed function from our _start function
 #![reexport_test_harness_main = "test_main"]
 
+extern crate alloc;
 use core::panic::PanicInfo;
 
+pub mod allocator;
 pub mod serial;
 pub mod vga_buffer;
 pub mod interrupts;
 pub mod gdt;
+pub mod memory;
 
 // Code block for the Interrupt Descriptor Table init and others
 pub fn init() {
@@ -82,10 +85,17 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-/// Entry point for `cargo test`
 #[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+use bootloader::{entry_point, BootInfo};
+
+#[cfg(test)]
+entry_point!(test_kernel_main);
+
+// Entry point for `cargo test`
+// #[no_mangle]
+// pub extern "C" fn _start() -> ! {
+#[cfg(test)]
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init(); // init initiates the IDT when test environment is started
     test_main();
     hlt_loop();
