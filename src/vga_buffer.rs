@@ -1,20 +1,6 @@
 use core::fmt;
-// trying to create a global WRITER without carrying the Writer in every module
-// we need ColorCode's new func to be compiled during compile time, so that it can be used
-// anywhere in the code in runtime, this is achievable by declaring a function as const,
-// but in this case there are arguments that need to be part of the func to run, thus we use
-// lazy static crate of rust, this helps in loading the function during runtime when it is first
-// called during the runtime
 use lazy_static::lazy_static;
-// this WRITER is immutable by default to make it mutable we can declare mut static, but that
-// would be unsafe, we can use interior mutability, to achieve it we use spinlocks as these
-// are the most basic kind of mutex that do not require any OS or hardware support
 use spin::Mutex;
-// we use volatile to tell the rust compiler not to optimize these
-// buffer writes as this are important and cannot be skipped which
-// it would have done by default as we are always writing ot the buffer
-// and not reading from even once in our whole code, thus making the
-// compiler think these writes as unimportant
 use volatile::Volatile;
 
 lazy_static! {
@@ -25,13 +11,7 @@ lazy_static! {
     });
 }
 
-// as u4 doesn't exist we have to use u8 representation
-// but there are only 16 colors and thus only 4 bits are sufficient
-// so 4 more bits will stay empty and rust doesn't allow that
-// so this line is added to allow dead code
 #[allow(dead_code)]
-// the below options are derived so that each color can be copied and printed
-// into new variables as normally rust doesn't allow this
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 
@@ -87,13 +67,9 @@ struct Buffer {
 pub struct Writer {
     column_position: usize,
     color_code: ColorCode,
-    // buffer stores a reference to the VGA buffer
-    // static means that the reference is valid for lifetime
     buffer: &'static mut Buffer,
 }
 
-// Now we will use the Writer to modify the buffer's characters
-// this method is to write as single ASCII byte
 impl Writer {
     // to print new line
     fn new_line(&mut self) {
@@ -176,9 +152,6 @@ impl fmt::Write for Writer {
 
 
 
-// Now we try adding a println macro using the WRITER so that println can be used
-// from anywhere in the whole crate
-// doc(hidden) attr to hide this func from the auto generated documentation of rust
 #[doc(hidden)]
 // this func is a wrapper func which locks the WRITER and calls write_fmt method, which is imported
 // from the Write trait, the additional unwrap() at end panics if no printing occurs
@@ -194,11 +167,6 @@ pub fn _print(args: fmt::Arguments) {
     });
 }
 
-// we add the #[macro_export] attribute to both macros to make them available everywhere in our crate
-// this places the macros in the root namespace of the crate,
-// so importing them via use crate::vga_buffer::println won't work
-// Instead, we have to do use crate::println
-// we are wrapping the _print func written above inside a macro to get the above state behaviour
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
@@ -209,28 +177,6 @@ macro_rules! println {
     () => ($crate::print!("\n"));
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
-
-
-
-
-// TEST FUNCTION
-
-
-// a test function to check the capabilities of the Writer we wrote
-// pub fn print_something() {
-//     use core::fmt::Write;
-//     let mut writer = Writer {
-//         column_position: 0,
-//         color_code: ColorCode::new(Color::LightRed, Color::White),
-//         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-//     };
-
-//     writer.write_byte(b'H');
-//     writer.write_string("ello ");
-//     writer.write_string("Wörld!");
-//     write!(writer, "The numbers are {} and {},\nthis is new line", 42, 1.0/3.0).unwrap();
-// }
-
 
 // A test function to check println works without panicking
 #[test_case]

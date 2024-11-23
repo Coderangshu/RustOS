@@ -3,10 +3,6 @@
 #![feature(abi_x86_interrupt)] // to allow x86_interrupt to run in our OS
 #![feature(custom_test_frameworks)] // Custom test framework provided by Rust
 #![test_runner(crate::test_runner)]
-// The custom test frameworks feature generates a main function that calls test_runner,
-// but this function is ignored because we use the #[no_main] attribute and provide our own entry point _start
-// To fix this, we first need to change the name of the generated function to something different than main through
-// the reexport_test_harness_main attribute. Then we can call the renamed function from our _start function
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
@@ -50,10 +46,6 @@ T: Fn(),
     }
 }
 
-// Test framework code
-// tests is passed as argument to the test_runner, it contains all the test cases
-// which are the reference of trivial_assertion (test cases), these are then executed
-// by the test_runner
 pub fn test_runner(tests: &[&dyn Testable]) {
     serial_println!("Running {} tests", tests.len());
     for test in tests {
@@ -91,9 +83,6 @@ use bootloader::{entry_point, BootInfo};
 #[cfg(test)]
 entry_point!(test_kernel_main);
 
-// Entry point for `cargo test`
-// #[no_mangle]
-// pub extern "C" fn _start() -> ! {
 #[cfg(test)]
 fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init(); // init initiates the IDT when test environment is started
