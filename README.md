@@ -10,8 +10,11 @@ To setup machine:
 6. run `rustup component add llvm-tools-preview`
 7. run `cargo bootimage`
 
+If facing any issues while `cargo run` or `cargo build`:
+1. `cargo update -p uart_16550 --precise 0.2.14`
+2. `cargo update -p x86_64 --precise 0.14.7`
+
 To run the OS image using qemu:
 `qemu-system-x86_64 -drive format=raw,file=target/x86_64-rustos/debug/bootimage-rustos.bin`
-
-cargo update -p uart_16550 --precise 0.2.14
-cargo update -p x86_64 --precise 0.14.7
+or
+`cargo run`
