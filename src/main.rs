@@ -48,16 +48,30 @@ pub extern "C" fn _start() -> ! {
     // invoke a breakpoint exception
     // x86_64::instructions::interrupts::int3();
 
-    // trigger a page fault without registering a page fault (this will cause a double fault)
-    // unsafe {
-    //     *(0xdeadbeef as *mut u8) = 42;
-    // };
+    // trigger a page fault without registering a page fault (this will cause a double fault) (for testing)
+    // let ptr = 0xdeadbeaf as *mut u8;
+    // unsafe {*ptr = 42;}
+
+    // let ptr = 0x20427c as *mut u8;
+
+    // read from a code page
+    // unsafe { let x = *ptr; }
+    // println!("read worked");
+
+    // write to a code page
+    // unsafe { *ptr = 42; }
+    // println!("write worked");
 
     // causing stack overflow so that a triple page fault occurs
     // fn stack_overflow() {
     //     stack_overflow();
     // }
     // stack_overflow(); // trigger a stack overflow
+
+    // printing base address of the page table
+    use x86_64::registers::control::Cr3;
+    let (level_4_page_table, _) = Cr3::read();
+    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
 
     // panic!("sjfdlkfjs"); // code to check if panic! function is working
 
