@@ -14,7 +14,9 @@ pub mod vga_buffer;
 pub mod interrupts;
 pub mod gdt;
 pub mod memory;
-
+pub mod keyboard;
+pub mod shell;
+pub mod fs;
 // Code block for the Interrupt Descriptor Table init and others
 pub fn init() {
     gdt::init();

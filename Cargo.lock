@@ -21,12 +21,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
-name = "bitflags"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
-
-[[package]]
 name = "bootloader"
 version = "0.9.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -91,12 +85,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustversion"
-version = "1.0.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e819f2bc632f285be6d7cd36e25940d45b2391dd6d9b939e79de557f7014248"
-
-[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -125,12 +113,11 @@ dependencies = [
 
 [[package]]
 name = "uart_16550"
-version = "0.2.19"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "614ff2a87880d4bd4374722268598a970bbad05ced8bf630439417347254ab2e"
+checksum = "503a6c0e6d82daa87985e662d120c0176b09587c92a68db22781b28ae95405dd"
 dependencies = [
- "bitflags 1.3.2",
- "rustversion",
+ "bitflags",
  "x86_64",
 ]
 
@@ -148,12 +135,11 @@ checksum = "442887c63f2c839b346c192d047a7c87e73d0689c9157b00b53dcc27dd5ea793"
 
 [[package]]
 name = "x86_64"
-version = "0.14.12"
+version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96cb6fd45bfeab6a5055c5bffdb08768bd0c069f1d946debe585bbb380a7c062"
+checksum = "fb611915c917c6296d11e23f71ff1ecfe49c5766daba92cd3df52df6b58285b6"
 dependencies = [
  "bit_field",
- "bitflags 2.6.0",
- "rustversion",
+ "bitflags",
  "volatile 0.4.6",
 ]

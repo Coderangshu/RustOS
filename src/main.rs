@@ -5,7 +5,10 @@
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
-
+use rustos::shell::start_shell; // Import the start_shell function
+use rustos::fs::{FileSystem, File};  // Correct capitalization for FileSystem
+// use crate::FileSystem;
+use rustos::keyboard::read_keyboard;
 use rustos::println;
 use core::panic::PanicInfo;
 use bootloader::{BootInfo, entry_point};
@@ -47,6 +50,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     // below line defines a conditional compile command
     // whenever test is true the below lines will be compiled and executed
+
+    let mut file_system = FileSystem::new();
+    // Start the shell for user input
+    start_shell(&mut file_system);
     #[cfg(test)]
     test_main();
 
