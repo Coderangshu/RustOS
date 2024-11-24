@@ -5,15 +5,17 @@ use x86_64::{
     VirtAddr,
 };
 // use bump::BumpAllocator;
-use linked_list::LinkedListAllocator;
+// use linked_list::LinkedListAllocator;
+use fixed_size_block::FixedSizeBlockAllocator;
 
 // pub mod bump;
-pub mod linked_list;
+// pub mod linked_list;
+pub mod fixed_size_block;
 
 #[global_allocator]
 // static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());
-static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
-
+// static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 // kernel stack start address (provided an arbitary virtual address as beginning)
 pub const HEAP_START: usize = 0x_4444_4444_0000;
@@ -48,9 +50,9 @@ impl<T> Locked<T> {
 
 // Faster alignment
 // Requires that `align` is a power of two.
-fn align_up(addr: usize, align: usize) -> usize {
-    (addr + align - 1) & !(align - 1)
-}
+// fn align_up(addr: usize, align: usize) -> usize {
+//     (addr + align - 1) & !(align - 1)
+// }
 
 pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
     let page_range = {
