@@ -4,7 +4,7 @@ use crate::println;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::format;
-
+use crate::print;
 pub struct File {
     pub name: String,
     pub data: Vec<u8>,
@@ -33,7 +33,7 @@ impl FileSystem {
             current_directory: String::from("/"), // Start at the root
         }
     }
-
+    
     // Helper to get a mutable reference to the current directory
     fn get_current_directory_mut(&mut self) -> Option<&mut Directory> {
         let path_components: Vec<&str> = self.current_directory.split('/').filter(|&s| !s.is_empty()).collect();
@@ -78,10 +78,10 @@ impl FileSystem {
             } else {
                 println!("Contents of '{}':", current_dir_path);  // Use the saved variable
                 for file in &current_dir.files {
-                    println!("f:{}", file.name);
+                    println!("green", "black","{}", file.name);
                 }
                 for subdir in &current_dir.subdirectories {
-                    println!("d:{}", subdir.name);
+                    println!("yellow","black","{}", subdir.name);
                 }
             }
         } else {
@@ -130,29 +130,52 @@ impl FileSystem {
             }
         }
     }
+    fn get_current_directory(&self) -> Option<&Directory> {
+        let path_components: Vec<&str> = self.current_directory.split('/').filter(|&s| !s.is_empty()).collect();
+        
+        let mut current = &self.root;
+
+        for component in path_components {
+            if let Some(next_dir) = current.subdirectories.iter().find(|dir| dir.name == component) {
+                current = next_dir;
+            } else {
+                return None; // If directory not found, return None
+            }
+        }
+        Some(current)
+    }
 
     // Reads a file by its name in the current directory
-    pub fn read_file(&mut self, name: &str) -> Option<Vec<u8>> {
-        if let Some(current_dir) = self.get_current_directory_mut() {
-            // Use the correct field `data` instead of `content`
+    pub fn read_file(&self, name: &str) -> Option<&Vec<u8>> {
+        if let Some(current_dir) = self.get_current_directory() {
             for file in &current_dir.files {
                 if file.name == name {
-                    return Some(file.data.clone());  // Correct field name `data`
+                    // let data_string = String::from_utf8_lossy(&file.data);
+                    // println!("{}", data_string);
+                    return Some(&file.data); // Borrow instead of clone
                 }
             }
         }
+        println!("File '{}' not found.", name);
         None
     }
+    
+    
     
     
 
     // Writes data to a file in the current directory
     pub fn write_file(&mut self, name: &str, data: Vec<u8>) {
+        // print!("This function is being called");
+        // println!("Data written to file '{:?}'.", data.clone());
         if let Some(current_dir) = self.get_current_directory_mut() {
+            print!("{}",current_dir.name);
             for file in &mut current_dir.files {
+                print!("{}",file.name);
                 if file.name == name {
-                    file.data = data;
-                    println!("Data written to file '{}'.", name);
+                    file.data = data.clone();
+                    
+                    // println!("Data written to file '{:?}'.", data.clone());
                     return;
                 }
             }

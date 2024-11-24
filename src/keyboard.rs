@@ -3,63 +3,58 @@ use spin::Mutex;
 use lazy_static::lazy_static;
 use x86_64::instructions::port::Port;
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use crate::print; // Ensure this is imported
-
+use crate::vga_buffer::WRITER;
 lazy_static! {
     pub static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> = Mutex::new(Keyboard::new(
         ScancodeSet1::new(),
         layouts::Us104Key,
         HandleControl::Ignore,
     ));
+
+    pub static ref INPUT_BUFFER: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
 }
 
-/// Reads the keyboard input and appends it to the buffer
+// Adds a character to the buffer
+pub fn add_to_buffer(character: u8) {
+    let mut buffer = INPUT_BUFFER.lock();
+    buffer.push_back(character);
+}
+
+// Fetches a character from the buffer
+pub fn fetch_from_buffer() -> Option<u8> {
+    let mut buffer = INPUT_BUFFER.lock();
+    
+    buffer.pop_front()
+}
+
 pub fn read_keyboard(buffer: &mut String) {
-    let mut keyboard = KEYBOARD.lock(); // Acquire lock on the keyboard
-    let mut port = Port::new(0x60); // Keyboard I/O port
-
-    // State to track pressed keys
-    let mut last_scancode = None;
-
     loop {
-        // Read scancode from the port
-        let scancode: u8 = unsafe { port.read() };
-
-        // If the scancode is the same as the last one, skip processing (debouncing)
-        if Some(scancode) == last_scancode {
-            continue;
-        }
-        
-        last_scancode = Some(scancode); // Store the current scancode for the next iteration
-
-        // Process the scancode
-        if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
-            // Check if the key event is new (not already processed)
-            if let Some(key) = keyboard.process_keyevent(key_event) {
-                match key {
-                    DecodedKey::Unicode(character) => {
-                        if character == '\n' {
-                            // Enter key, complete input
-                            if buffer.len()==0 {
-                                continue;
-                            }
-                            buffer.push(character); // Add Enter to the buffer
-                            // print!("Enter pressed, input completed.\n");
-                            return; // Exit the loop and return to main.rs
-                        } else if character == '\x08' {
-                            // Backspace key, remove last character
-                            buffer.pop();
-                        } else {
-                            // Append character to the buffer
-                            buffer.push(character);
-                        }
-                    }
-                    DecodedKey::RawKey(key) => {
-                        // Handle non-printable keys (e.g., Shift, Ctrl, etc.)
-                        print!("{:?}", key);
-                    }
-                }
+        // Fetch the next character from the buffer
+        if let Some(character) = fetch_from_buffer() {
+            if character!= b'\x08'{
+                print!("{}", character as char); // Print the character
             }
+            
+            if character == b'\n' {
+                // Enter pressed, input completed
+                if !buffer.is_empty() {
+                    buffer.push('\n');
+                    return; // Exit the loop
+                }
+            } else if character == b'\x08' {
+                // Backspace pressed, remove last character
+                    buffer.pop(); // Remove the last character from the buffer
+                    WRITER.lock().handle_backspace(); // Move cursor back and clear the character on screen
+            } else {
+                // Append character to the buffer
+                buffer.push(character as char);
+            }
+        } else {
+            // If the buffer is empty, let the CPU wait briefly (e.g., avoid busy-waiting)
+            x86_64::instructions::hlt(); // Halts the CPU until the next interrupt
         }
     }
 }
+

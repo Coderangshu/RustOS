@@ -5,6 +5,9 @@ use pic8259::ChainedPics;
 use crate::gdt;
 use spin;
 
+use crate::keyboard;
+use crate::keyboard::KEYBOARD;
+
 pub const PIC_1_OFFSET: u8 = 32;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 
@@ -72,33 +75,66 @@ extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, e
     hlt_loop();
 }
 
+// extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
+//     use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
+//     use spin::Mutex;
+//     use x86_64::instructions::port::Port;
+
+//     lazy_static! {
+//         static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =
+//             Mutex::new(Keyboard::new(ScancodeSet1::new(),
+//                 layouts::Us104Key, HandleControl::Ignore)
+//             );
+//     }
+
+//     let mut keyboard = KEYBOARD.lock();
+//     let mut port = Port::new(0x60);
+
+//     let scancode: u8 = unsafe { port.read() };
+//     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+//         if let Some(key) = keyboard.process_keyevent(key_event) {
+//             match key {
+//                 DecodedKey::Unicode(character) => print!("{}", character),
+//                 DecodedKey::RawKey(key) => print!("{:?}", key),
+//             }
+//         }
+//     }
+
+//     unsafe {
+//         PICS.lock()
+//             .notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
+//     }
+// }
+
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
-    use spin::Mutex;
+    use pc_keyboard::{DecodedKey, HandleControl, Keyboard, layouts, ScancodeSet1};
     use x86_64::instructions::port::Port;
-
-    lazy_static! {
-        static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =
-            Mutex::new(Keyboard::new(ScancodeSet1::new(),
-                layouts::Us104Key, HandleControl::Ignore)
-            );
-    }
-
+    
     let mut keyboard = KEYBOARD.lock();
-    let mut port = Port::new(0x60);
-
+    let mut port = Port::new(0x60); // Read from the keyboard I/O port
+    
+    // Read the scancode
     let scancode: u8 = unsafe { port.read() };
+
+    // Process the scancode using the keyboard's state machine
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
-                DecodedKey::Unicode(character) => print!("{}", character),
-                DecodedKey::RawKey(key) => print!("{:?}", key),
+                DecodedKey::Unicode(character) => {
+                    // Handle printable characters, including space (' '), Enter ('\n'), and Backspace ('\x08')
+                    if character.is_ascii_graphic() || character.is_whitespace() || character == '\n' || character == '\x08' {
+                        keyboard::add_to_buffer(character as u8);
+                    }
+                }
+                DecodedKey::RawKey(_key) => {
+                    // Ignore non-printable keys
+                }
             }
         }
     }
 
+    // Notify the PIC that the interrupt was handled
     unsafe {
-        PICS.lock()
-            .notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
 }

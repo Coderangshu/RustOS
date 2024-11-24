@@ -19,6 +19,9 @@ pub fn shutdown(file_system: &mut FileSystem) -> ! {
 
 pub fn start_shell(file_system: &mut FileSystem) {
     use crate::keyboard::read_keyboard;
+
+    println!("red", "black", "Hello, This is Pratik. This is a red text on a black background!");
+    print!("green", "black", "This is blue text on a yellow background!");
     println!("Entering interactive shell. Type `help` for commands, or `exit` to quit.");
 
     let mut buffer = String::new();
@@ -31,7 +34,6 @@ pub fn start_shell(file_system: &mut FileSystem) {
 
         // Read keyboard input and append to the buffer
         read_keyboard(&mut buffer); // Function to read keyboard input
-
         // Process the input when 'Enter' is pressed
         if buffer.ends_with('\n') && buffer.len() > 1 {
             let cmd = buffer.trim().to_string(); // Get command by trimming the buffer
@@ -53,11 +55,11 @@ pub fn start_shell(file_system: &mut FileSystem) {
                     println!("Exiting shell...");
                     break; // Exit the loop when `exit` is typed
                 }
-                cmd if cmd.starts_with("echo ") => {
-                    let text = &cmd[5..];
-                    println!("{}", text);
-                    buffer.clear();
-                }
+                // cmd if cmd.starts_with("echo ") => {
+                //     let text = &cmd[5..];
+                //     println!("{}", text);
+                //     buffer.clear();
+                // }
                 cmd if cmd.starts_with("touch ") => {
                     let filename = &cmd[6..];
                     file_system.create_file(filename.to_string());
@@ -74,20 +76,34 @@ pub fn start_shell(file_system: &mut FileSystem) {
                 cmd if cmd.starts_with("cat ") => {
                     let filename = &cmd[4..];
                     if let Some(data) = file_system.read_file(filename) {
-                        println!("File content: {:?}", data); // Assuming data is a Vec<u8>
+                        let data_string = String::from_utf8_lossy(data);
+                        println!("{}", data_string); // Assuming data is a Vec<u8>
                     }
+                    
                     buffer.clear();
                 }
-                cmd if cmd.starts_with("write ") => {
-                    let parts: Vec<&str> = cmd[6..].split_whitespace().collect();
+                cmd if cmd.starts_with("echo ") => {
+                    let parts: Vec<&str> = cmd[5..].split_whitespace().collect();
+                    // print!("{}",parts.len());
                     if parts.len() < 2 {
-                        println!("Usage: write <filename> <data>");
-                    } else {
-                        let filename = parts[0];
-                        let data = parts[1..].join(" ").into_bytes();
-                        file_system.write_file(filename, data);
+                        let text = &cmd[5..];
+                        println!("{}", text);
+                        // println!("Usage: write <filename> <data>");
+                    } else if parts.len() >= 3 {
+                        let idx = parts.len() - 1; // Index of the last element
+                        let filename = parts[idx]; // Take the last element
+                        let data: Vec<&str> = parts[0..idx-1].to_vec();
+    
+                        // println!("filename: {}", filename);
+                        // println!("Statement in Shell: {:?}", data.join(" ")); // Join data to form a string
+                    
+                        // Convert data into bytes
+                        let data_bytes = data.join(" ").into_bytes();
+                        file_system.write_file(filename, data_bytes);
+                    }else {
+                        println!("Usage: echo text or echo text > <filename>");
                     }
-                    buffer.clear();
+                        buffer.clear();
                 }
                 cmd if cmd.starts_with("mkdir ") => {
                     let dirname = &cmd[6..];

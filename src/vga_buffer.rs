@@ -38,10 +38,10 @@ pub enum Color {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 // To ensure that the ColorCode has the exact same data layout as a u8, we use the repr(transparent) attribute
 #[repr(transparent)]
-struct ColorCode(u8);
+pub struct ColorCode(u8); // FIXME
 
 impl ColorCode {
-    fn new(foreground: Color, background: Color) -> ColorCode {
+    pub fn new(foreground: Color, background: Color) -> ColorCode {
         ColorCode((background as u8)<<4 | (foreground as u8))
     }
 }
@@ -71,6 +71,38 @@ pub struct Writer {
 }
 
 impl Writer {
+
+    pub fn default_color_code() -> ColorCode {
+        ColorCode::new(Color::White, Color::Black)
+    }
+    
+    pub fn move_cursor_back(&mut self) {
+        if self.column_position > 0 {
+            self.column_position -= 1;
+        } else if BUFFER_HEIGHT > 1 {
+            // If at the start of a line, move up one row
+            self.column_position = BUFFER_WIDTH - 1;
+        }
+    }
+
+    /// Clears the character at the current cursor position
+    pub fn clear_char_at(&mut self) {
+        let row = BUFFER_HEIGHT - 1;
+        let col = self.column_position;
+
+        let blank = ScreenChar {
+            ascii_character: b' ',
+            color_code: self.color_code,
+        };
+        self.buffer.chars[row][col].write(blank);
+    }
+
+    /// Handles backspace: moves the cursor back and clears the character
+    pub fn handle_backspace(&mut self) {
+        self.move_cursor_back();
+        self.clear_char_at();
+    }
+
     // to print new line
     fn new_line(&mut self) {
         // for row we start from row 1 as row 0 is moved out of view when moved up
@@ -148,6 +180,29 @@ impl fmt::Write for Writer {
     }
 }
 
+impl Color {
+    pub fn from_str(color: &str) -> Option<Color> {
+        match color.to_lowercase().as_str() {
+            "black" => Some(Color::Black),
+            "blue" => Some(Color::Blue),
+            "green" => Some(Color::Green),
+            "cyan" => Some(Color::Cyan),
+            "red" => Some(Color::Red),
+            "magenta" => Some(Color::Magenta),
+            "brown" => Some(Color::Brown),
+            "lightgray" => Some(Color::LightGray),
+            "darkgray" => Some(Color::DarkGray),
+            "lightblue" => Some(Color::LightBlue),
+            "lightgreen" => Some(Color::LightGreen),
+            "lightcyan" => Some(Color::LightCyan),
+            "lightred" => Some(Color::LightRed),
+            "pink" => Some(Color::Pink),
+            "yellow" => Some(Color::Yellow),
+            "white" => Some(Color::White),
+            _ => None,
+        }
+    }
+}
 
 
 
@@ -167,16 +222,70 @@ pub fn _print(args: fmt::Arguments) {
     });
 }
 
+//Default working code
+// #[macro_export]
+// macro_rules! print {
+//     ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
+// }
+
+// #[macro_export]
+// macro_rules! println {
+//     () => ($crate::print!("\n"));
+//     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+// }
+
+pub fn _print_with_color(args: fmt::Arguments, color_code: ColorCode) {
+    use core::fmt::Write;
+    use x86_64::instructions::interrupts;
+
+    interrupts::without_interrupts(|| {
+        let mut writer = WRITER.lock();
+        writer.color_code = color_code;
+        writer.write_fmt(args).unwrap();
+    });
+}
+
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
+    // If both foreground and background are specified
+    ($fg:expr, $bg:expr, $($arg:tt)*) => {{
+        let fg_color = $crate::vga_buffer::Color::from_str($fg).expect("Invalid foreground color");
+        let bg_color = $crate::vga_buffer::Color::from_str($bg).expect("Invalid background color");
+        let color_code = $crate::vga_buffer::ColorCode::new(fg_color, bg_color);
+        $crate::vga_buffer::_print_with_color(format_args!($($arg)*), color_code);
+    }};
+    // Default case: no color specified, use the default color (white on black)
+    ($($arg:tt)*) => {{
+        let default_color_code = $crate::vga_buffer::Writer::default_color_code();
+        $crate::vga_buffer::_print_with_color(format_args!($($arg)*), default_color_code);
+    }};
 }
 
 #[macro_export]
 macro_rules! println {
-    () => ($crate::print!("\n"));
-    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+    // If both foreground and background are specified
+    ($fg:expr, $bg:expr, $($arg:tt)*) => {{
+        let fg_color = $crate::vga_buffer::Color::from_str($fg).expect("Invalid foreground color");
+        let bg_color = $crate::vga_buffer::Color::from_str($bg).expect("Invalid background color");
+        let color_code = $crate::vga_buffer::ColorCode::new(fg_color, bg_color);
+        $crate::vga_buffer::_print_with_color(format_args!($($arg)*), color_code);
+        $crate::vga_buffer::_print_with_color(format_args!("\n"), color_code);
+    }};
+    // Default case: no color specified, use the default color (white on black)
+    () => {{
+        let default_color_code = $crate::vga_buffer::Writer::default_color_code();
+        $crate::vga_buffer::_print_with_color(format_args!("\n"), default_color_code);
+    }};
+    // Default case with string formatting
+    ($($arg:tt)*) => {{
+        let default_color_code = $crate::vga_buffer::Writer::default_color_code();
+        $crate::vga_buffer::_print_with_color(format_args!($($arg)*), default_color_code);
+        $crate::vga_buffer::_print_with_color(format_args!("\n"), default_color_code);
+    }};
 }
+
+
+
 
 // A test function to check println works without panicking
 #[test_case]

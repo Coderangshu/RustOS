@@ -13,7 +13,7 @@ use rustos::println;
 use core::panic::PanicInfo;
 use bootloader::{BootInfo, entry_point};
 use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
-
+use rustos::print;
 // defining entry point as kernel_main as the starting point of OS
 entry_point!(kernel_main);
 
@@ -24,6 +24,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use rustos::memory::{self, BootInfoFrameAllocator};
 
     println!("Hello World, {}!!", "from Angshuman");
+    
 
     // Initiations done before the OS bootup
     rustos::init();
