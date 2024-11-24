@@ -5,12 +5,15 @@
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
-
+use rustos::shell::start_shell; // Import the start_shell function
+use rustos::fs::{FileSystem, File};  // Correct capitalization for FileSystem
+// use crate::FileSystem;
+use rustos::keyboard::read_keyboard;
 use rustos::println;
 use core::panic::PanicInfo;
 use bootloader::{BootInfo, entry_point};
 use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
-
+use rustos::print;
 // defining entry point as kernel_main as the starting point of OS
 entry_point!(kernel_main);
 
@@ -21,6 +24,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use rustos::memory::{self, BootInfoFrameAllocator};
 
     println!("Hello World, {}!!", "from Angshuman");
+    
 
     // Initiations done before the OS bootup
     rustos::init();
@@ -47,6 +51,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     // below line defines a conditional compile command
     // whenever test is true the below lines will be compiled and executed
+
+    let mut file_system = FileSystem::new();
+    // Start the shell for user input
+    start_shell(&mut file_system);
     #[cfg(test)]
     test_main();
 
