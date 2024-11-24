@@ -1,4 +1,5 @@
 #![no_std]
+// #![feature(const_mut_refs)]
 #![cfg_attr(test, no_main)]
 #![feature(abi_x86_interrupt)] // to allow x86_interrupt to run in our OS
 #![feature(custom_test_frameworks)] // Custom test framework provided by Rust
