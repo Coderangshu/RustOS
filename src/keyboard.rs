@@ -1,20 +1,11 @@
-use pc_keyboard::{DecodedKey, HandleControl, Keyboard, ScancodeSet1, layouts};
 use spin::Mutex;
 use lazy_static::lazy_static;
-use x86_64::instructions::port::Port;
 use alloc::string::String;
 use alloc::collections::VecDeque;
 use crate::print; // Ensure this is imported
 use crate::vga_buffer::WRITER;
-lazy_static! {
-    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> = Mutex::new(Keyboard::new(
-        ScancodeSet1::new(),
-        layouts::Us104Key,
-        HandleControl::Ignore,
-    ));
 
-    pub static ref INPUT_BUFFER: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
-}
+lazy_static! {pub static ref INPUT_BUFFER: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());}
 
 // Adds a character to the buffer
 pub fn add_to_buffer(character: u8) {

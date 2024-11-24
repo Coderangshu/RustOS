@@ -1,5 +1,4 @@
 #![no_std]
-// #![feature(const_mut_refs)]
 #![cfg_attr(test, no_main)]
 #![feature(abi_x86_interrupt)] // to allow x86_interrupt to run in our OS
 #![feature(custom_test_frameworks)] // Custom test framework provided by Rust
@@ -18,15 +17,18 @@ pub mod memory;
 pub mod keyboard;
 pub mod shell;
 pub mod fs;
-// Code block for the Interrupt Descriptor Table init and others
+
 pub fn init() {
+    // new gdt with our custom tss in it loaded
     gdt::init();
     interrupts::init_idt();
+    // init PIC (Programmable Interrupt Controller)
     unsafe {interrupts::PICS.lock().initialize()};
+    // change CPU config for CPU to listen to PIC
     x86_64::instructions::interrupts::enable();
 }
 
-// function to prevent continuous loop,  hlt puts CPU to sleed until next interrupt
+// function to prevent continuous loop, hlt puts CPU to sleep until next interrupt
 pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();

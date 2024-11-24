@@ -204,9 +204,6 @@ impl Color {
     }
 }
 
-
-
-
 #[doc(hidden)]
 // this func is a wrapper func which locks the WRITER and calls write_fmt method, which is imported
 // from the Write trait, the additional unwrap() at end panics if no printing occurs
@@ -221,18 +218,6 @@ pub fn _print(args: fmt::Arguments) {
         WRITER.lock().write_fmt(args).unwrap();
     });
 }
-
-//Default working code
-// #[macro_export]
-// macro_rules! print {
-//     ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
-// }
-
-// #[macro_export]
-// macro_rules! println {
-//     () => ($crate::print!("\n"));
-//     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
-// }
 
 pub fn _print_with_color(args: fmt::Arguments, color_code: ColorCode) {
     use core::fmt::Write;

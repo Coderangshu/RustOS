@@ -9,7 +9,7 @@ use crate::alloc::string::ToString;
 use x86_64::instructions::{interrupts, hlt};
 
 
-pub fn shutdown(file_system: &mut FileSystem) -> ! {
+pub fn shutdown() -> ! {
     println!("Shutting down system...");
     interrupts::disable();
     loop {
@@ -39,16 +39,18 @@ pub fn start_shell(file_system: &mut FileSystem) {
             let cmd = buffer.trim().to_string(); // Get command by trimming the buffer
             match cmd.as_str() {
                 "help" => {
-                    println!("Available commands:");
-                    println!("  help - Display this message");
-                    println!("  exit - Exit the shell");
-                    println!("  echo <text> - Print the given text");
-                    println!("  touch <filename> - Create a new file");
-                    println!("  ls - List all files");
-                    println!("  cat <filename> - Read a file");
-                    println!("  write <filename> <data> - Write to a file");
-                    println!("  mkdir <directory_name> - Create a new directory");
-                    println!("  cd <directory_name> - Change the current directory");
+                    println!("Magenta", "black", "Available commands:");
+                    println!("yellow", "black", " help - Display this message");
+                    println!("yellow", "black", "  exit - Exit the shell");
+                    println!("yellow", "black", "  echo <text> - Print the given text");
+                    println!("yellow", "black", "  touch <filename> - Create a new file");
+                    println!("yellow", "black", "  ls - List all files");
+                    println!("yellow", "black", "  cat <filename> - Read a file");
+                    println!("yellow", "black", "  write <filename> <data> - Write to a file");
+                    println!("yellow", "black", "  mkdir <directory_name> - Create a new directory");
+                    println!("yellow", "black", "  cd <directory_name> - Change the current directory");
+                    println!("yellow", "black", "  shutdown - Poweroff");
+                    println!("yellow", "black", "  pwd - Get current working directory");
                     buffer.clear();
                 }
                 "exit" => {
@@ -67,7 +69,7 @@ pub fn start_shell(file_system: &mut FileSystem) {
                 }
                 "shutdown" => {
                     println!("Shutting down...");
-                    shutdown(file_system); // Call the shutdown function
+                    shutdown(); // Call the shutdown function
                 }
                 "ls" => {
                     file_system.list_files();
