@@ -1,4 +1,3 @@
-
 use crate::fs::FileSystem;
 use crate::println;
 use alloc::string::String;
@@ -20,15 +19,12 @@ pub fn shutdown() -> ! {
 pub fn start_shell(file_system: &mut FileSystem) {
     use crate::keyboard::read_keyboard;
 
-    println!("red", "black", "Hello, This is Pratik. This is a red text on a black background!");
-    print!("green", "black", "This is blue text on a yellow background!");
     println!("Entering interactive shell. Type `help` for commands, or `exit` to quit.");
 
     let mut buffer = String::new();
 
     loop {
         // Display prompt
-        // print!(">> ");
         print!("{} >> ", file_system.current_directory);
         buffer.clear(); // Clear the buffer before reading new input
 
@@ -57,11 +53,7 @@ pub fn start_shell(file_system: &mut FileSystem) {
                     println!("Exiting shell...");
                     break; // Exit the loop when `exit` is typed
                 }
-                // cmd if cmd.starts_with("echo ") => {
-                //     let text = &cmd[5..];
-                //     println!("{}", text);
-                //     buffer.clear();
-                // }
+                
                 cmd if cmd.starts_with("touch ") => {
                     let filename = &cmd[6..];
                     file_system.create_file(filename.to_string());
@@ -90,15 +82,11 @@ pub fn start_shell(file_system: &mut FileSystem) {
                     if parts.len() < 2 {
                         let text = &cmd[5..];
                         println!("{}", text);
-                        // println!("Usage: write <filename> <data>");
                     } else if parts.len() >= 3 {
                         let idx = parts.len() - 1; // Index of the last element
                         let filename = parts[idx]; // Take the last element
                         let data: Vec<&str> = parts[0..idx-1].to_vec();
     
-                        // println!("filename: {}", filename);
-                        // println!("Statement in Shell: {:?}", data.join(" ")); // Join data to form a string
-                    
                         // Convert data into bytes
                         let data_bytes = data.join(" ").into_bytes();
                         file_system.write_file(filename, data_bytes);
